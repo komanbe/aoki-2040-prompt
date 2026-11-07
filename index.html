@@ -6,7 +6,7 @@
 <title>2050持ち帰りプロンプト</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap">
 <style>
-/* チームの端末で入力 → ntfy.sh 経由で全端末に反映。「全チーム」タブは操作する人の画面 */
+/* チームの端末で午前・午後のことばを入力 → ntfy.sh 経由で全端末に反映。「全チーム」は操作用、「くらべる」は午前と午後の比較 */
 :root {
   --bg: #ffffff; --fg: #111111; --muted: #5f5f5f; --panel: #f2f2f2; --line: #e2e2e2;
   --accent: #d6177f; --accent-ink: #ffffff; --accent-soft: #fce4f0; --ok: #1d7a46; --warn: #b3261e;
@@ -25,22 +25,25 @@ body {
   padding-block: 20px 32px;
 }
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: 4px; background: linear-gradient(90deg, #e20002, #bc03ad); z-index: 10; }
-.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 18px; }
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 16px; }
 header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; }
 h1 { font-size: clamp(22px, 3.2vw, 32px); font-weight: 900; margin: 0; text-wrap: balance; }
 .lead { margin: 4px 0 0; color: var(--muted); font-size: 14px; max-width: 60em; }
-.tabs { display: flex; gap: 8px; flex-wrap: wrap; }
-.tabs button {
+.tabs, .seg { display: flex; gap: 8px; flex-wrap: wrap; }
+.tabs button, .seg button {
   font: 700 16px var(--font); border: 2px solid var(--fg); background: var(--bg); color: var(--fg);
   border-radius: 999px; padding: 8px 18px; cursor: pointer;
 }
-.tabs button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
-.tabs button.all { border-color: var(--accent); color: var(--accent); }
-.tabs button.all[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.tabs button[aria-pressed="true"], .seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+.tabs button.special { border-color: var(--accent); color: var(--accent); }
+.tabs button.special[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.seg button { font-size: 15px; padding: 6px 16px; }
+.seg button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-.sync { font-size: 13px; color: var(--muted); }
+.sync { font-size: 13px; color: var(--muted); margin: 0; }
 .sync.ok { color: var(--ok); }
 .sync.ng { color: var(--warn); }
+.bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
 .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 20px; align-items: start; }
 @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
 .fields { display: grid; gap: 12px; }
@@ -50,6 +53,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 .field input { width: 100%; font: 700 20px var(--font); color: var(--fg); background: var(--bg); border: 2px solid var(--line); border-radius: 8px; padding: 10px 12px; }
 .field input::placeholder { color: var(--muted); font-weight: 400; }
 .hint { color: var(--muted); font-size: 13px; }
+.am-was { font-size: 13px; color: var(--muted); }
+.am-was b { color: var(--fg); }
 .out { background: var(--fg); color: var(--bg); border-radius: 14px; padding: 18px; display: grid; gap: 12px; min-width: 0; }
 .out-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
 .out-head strong { font-size: 15px; letter-spacing: .06em; color: var(--accent-soft); }
@@ -60,20 +65,27 @@ textarea.prompt { width: 100%; min-height: 150px; resize: vertical; font: 500 17
 .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
 .copy { font: 900 17px var(--font); background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 999px; padding: 10px 24px; cursor: pointer; }
 .status { font-size: 14px; color: var(--accent-soft); min-height: 1.4em; }
-.note { font-size: 13px; color: var(--accent-soft); }
+.note { font-size: 13px; color: var(--accent-soft); margin: 0; }
 .settings { background: var(--accent-soft); color: var(--fg); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
 .settings ul { margin: 4px 0 0; padding-left: 1.2em; }
-.all-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-@media (max-width: 760px) { .all-grid { grid-template-columns: 1fr; } }
+.cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 760px) { .cards { grid-template-columns: 1fr; } }
 .card { background: var(--panel); border-radius: 14px; padding: 16px; display: grid; gap: 10px; min-width: 0; }
-.card h2 { margin: 0; font-size: 20px; font-weight: 900; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.card h2 { margin: 0; font-size: 20px; font-weight: 900; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .card h2 small { font-size: 12px; color: var(--muted); font-weight: 500; }
-.words { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; font-size: 14px; }
+.words { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; font-size: 14px; margin: 0; }
 .words dt { color: var(--muted); }
 .words dd { margin: 0; font-weight: 700; overflow-wrap: anywhere; }
 .card textarea.prompt { min-height: 120px; font-size: 15px; border: 1px solid var(--line); }
-.card .copy { justify-self: start; }
 .card .status { color: var(--ok); }
+.cmp { width: 100%; border-collapse: collapse; font-size: 15px; table-layout: fixed; }
+.cmp th, .cmp td { text-align: left; padding: 8px 8px; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
+.cmp th { font-size: 12px; color: var(--muted); font-weight: 700; }
+.cmp th:first-child, .cmp td:first-child { width: 6.5em; color: var(--muted); font-size: 13px; }
+.cmp tr.changed td { background: var(--accent-soft); }
+.cmp tr.changed td:last-child { font-weight: 900; }
+.chip { display: inline-block; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 2px 10px; background: var(--accent); color: var(--accent-ink); }
+.chip.same { background: var(--line); color: var(--fg); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
@@ -82,29 +94,36 @@ textarea.prompt { width: 100%; min-height: 150px; resize: vertical; font: 500 17
   <header>
     <div>
       <h1>2050年から持ち帰ったモノ　プロンプト</h1>
-      <p class="lead">チームのことばを入れると、全員の画面に反映されます。人が出ないように、AIには④（モノ）と③（使う場面）だけを渡します。①と②は発表で話そう。</p>
+      <p class="lead">チームのことばを入れると、全員の画面に反映されます。人が出ないように、AIには④（モノ）と③（使う場面）だけを渡します。午後は「午後のことば」に入れ直して、午前とくらべよう。</p>
     </div>
-    <div class="tabs" role="group" aria-label="表示するチーム">
+    <div class="tabs" role="group" aria-label="表示">
       <button type="button" data-view="A" aria-pressed="true">チームA</button>
       <button type="button" data-view="B" aria-pressed="false">チームB</button>
       <button type="button" data-view="C" aria-pressed="false">チームC</button>
       <button type="button" data-view="D" aria-pressed="false">チームD</button>
-      <button type="button" data-view="all" class="all" aria-pressed="false">全チーム（操作用）</button>
+      <button type="button" data-view="all" class="special" aria-pressed="false">全チーム（操作用）</button>
+      <button type="button" data-view="cmp" class="special" aria-pressed="false">午前と午後をくらべる</button>
     </div>
   </header>
-  <p class="sync" id="sync" role="status">つないでいます…</p>
+  <div class="bar">
+    <div class="seg" role="group" aria-label="午前か午後か" id="phaseSeg">
+      <button type="button" data-phase="am" aria-pressed="true">午前のことば</button>
+      <button type="button" data-phase="pm" aria-pressed="false">午後のことば</button>
+    </div>
+    <p class="sync" id="sync" role="status">つないでいます…</p>
+  </div>
 
   <section id="teamView" class="grid">
     <form class="fields" id="form" autocomplete="off">
-      <div class="field"><label for="a"><span class="num">1</span>どんな日本？</label><input id="a" placeholder="例：子どもが少ない"></div>
-      <div class="field"><label for="b"><span class="num">2</span>だれのため？</label><input id="b" placeholder="例：ひとり暮らしのおばあちゃん"></div>
-      <div class="field"><label for="c"><span class="num">3</span>どんなときに使う？</label><input id="c" placeholder="例：買い物に行くとき"></div>
-      <div class="field"><label for="d"><span class="num">4</span>どんなモノ？</label><input id="d" placeholder="例：空を飛ぶかご">
+      <div class="field"><label for="a"><span class="num">1</span>どんな日本？</label><input id="a" placeholder="例：子どもが少ない"><span class="am-was" data-was="a" hidden></span></div>
+      <div class="field"><label for="b"><span class="num">2</span>だれのため？</label><input id="b" placeholder="例：ひとり暮らしのおばあちゃん"><span class="am-was" data-was="b" hidden></span></div>
+      <div class="field"><label for="c"><span class="num">3</span>どんなときに使う？</label><input id="c" placeholder="例：買い物に行くとき"><span class="am-was" data-was="c" hidden></span></div>
+      <div class="field"><label for="d"><span class="num">4</span>どんなモノ？</label><input id="d" placeholder="例：空を飛ぶかご"><span class="am-was" data-was="d" hidden></span>
         <span class="hint">ここがそのまま立体になります。形がわかることばだと出やすいです。</span></div>
     </form>
     <section class="out" aria-label="できあがったプロンプト">
       <div class="out-head">
-        <strong id="outTitle">チームAのプロンプト</strong>
+        <strong id="outTitle">チームAのプロンプト（午前）</strong>
         <div class="lang" role="group" aria-label="言語">
           <button type="button" data-lang="ja" aria-pressed="true">日本語</button>
           <button type="button" data-lang="en" aria-pressed="false">英語</button>
@@ -135,7 +154,12 @@ textarea.prompt { width: 100%; min-height: 150px; resize: vertical; font: 500 17
         <button type="button" data-lang="en" aria-pressed="false">英語</button>
       </div>
     </div>
-    <div class="all-grid" id="cards"></div>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <section id="cmpView" hidden>
+    <p class="hint" style="margin:0 0 12px">午前に考えたことばと、東大やVRなどの先進技術を見たあとの午後のことばをくらべます。変わったところに色がつきます。午後の欄が空のところは「そのまま」です。</p>
+    <div class="cards" id="cmpCards"></div>
   </section>
 </div>
 
@@ -146,21 +170,33 @@ const TEAMS = ["A", "B", "C", "D"];
 const KEYS = ["a", "b", "c", "d"];
 const LABELS = { a: "①どんな日本", b: "②だれのため", c: "③使うとき", d: "④どんなモノ" };
 const EX = { a: "子どもが少ない", b: "ひとり暮らしのおばあちゃん", c: "買い物に行くとき", d: "空を飛ぶかご" };
-const data = { A: {}, B: {}, C: {}, D: {} };   // チームごとの最新のことば（t は更新時刻）
+const PHASE_NAME = { am: "午前", pm: "午後" };
+// data[team][phase] = {a,b,c,d,t,sent}
+const data = {};
+for (const t of TEAMS) data[t] = { am: {}, pm: {} };
 let view = "A";
+let phase = "am";
 let lang = "ja";
 let sendTimer = null;
 
-function readLocal() { try { Object.assign(data, JSON.parse(localStorage.getItem("prompt2040_sync") || "{}")); } catch (e) {} }
-function writeLocal() { try { localStorage.setItem("prompt2040_sync", JSON.stringify(data)); } catch (e) {} }
-try { const v = localStorage.getItem("prompt2040_view"); if (v) view = v; } catch (e) {}
+function readLocal() {
+  try {
+    const saved = JSON.parse(localStorage.getItem("prompt2050_sync") || "{}");
+    for (const t of TEAMS) if (saved[t]) data[t] = { am: saved[t].am || {}, pm: saved[t].pm || {} };
+  } catch (e) {}
+  try { view = localStorage.getItem("prompt2050_view") || view; phase = localStorage.getItem("prompt2050_phase") || phase; } catch (e) {}
+}
+function writeLocal() { try { localStorage.setItem("prompt2050_sync", JSON.stringify(data)); } catch (e) {} }
+function remember() { try { localStorage.setItem("prompt2050_view", view); localStorage.setItem("prompt2050_phase", phase); } catch (e) {} }
 
 function setSync(text, cls) { const el = document.getElementById("sync"); el.textContent = text; el.className = "sync " + (cls || ""); }
 function clock(t) { return new Date(t).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" }); }
+const val = (w, k) => ((w && w[k]) || "").trim();
 
-function filled(w) {
+// 午後の欄が空なら、午前のことばをそのまま使う
+function filled(w, base) {
   const v = {}; let usedExample = false;
-  for (const k of KEYS) { const t = (w[k] || "").trim(); v[k] = t || EX[k]; if (!t) usedExample = true; }
+  for (const k of KEYS) { const t = val(w, k) || val(base, k); v[k] = t || EX[k]; if (!t) usedExample = true; }
   return { v, usedExample };
 }
 function build(v) {
@@ -173,30 +209,45 @@ function build(v) {
 }
 
 function renderTeam() {
-  const w = data[view] || {};
-  for (const k of KEYS) { const el = document.getElementById(k); if (document.activeElement !== el) el.value = w[k] || ""; }
-  const { v, usedExample } = filled(w);
+  const w = data[view][phase];
+  for (const k of KEYS) {
+    const el = document.getElementById(k);
+    if (document.activeElement !== el) el.value = w[k] || "";
+    const was = document.querySelector(`[data-was="${k}"]`);
+    const am = val(data[view].am, k);
+    if (phase === "pm" && am) {
+      was.hidden = false; was.textContent = "";
+      was.append("午前は：");
+      const b = document.createElement("b"); b.textContent = am; was.append(b);
+      el.placeholder = am;
+    } else {
+      was.hidden = true;
+      el.placeholder = "例：" + EX[k];
+    }
+  }
+  const { v, usedExample } = filled(w, phase === "pm" ? data[view].am : null);
   document.getElementById("prompt").value = build(v);
   document.getElementById("example").hidden = !usedExample;
-  document.getElementById("outTitle").textContent = `チーム${view}のプロンプト`;
+  document.getElementById("outTitle").textContent = `チーム${view}のプロンプト（${PHASE_NAME[phase]}）`;
 }
 function renderAll() {
   const box = document.getElementById("cards");
   box.textContent = "";
   for (const team of TEAMS) {
-    const w = data[team] || {};
+    const w = data[team][phase];
     const card = document.createElement("article"); card.className = "card";
-    const h = document.createElement("h2"); h.textContent = `チーム${team}`;
+    const h = document.createElement("h2"); h.textContent = `チーム${team}（${PHASE_NAME[phase]}）`;
     const small = document.createElement("small"); small.textContent = w.t ? `更新 ${clock(w.t)}` : "まだ入力なし"; h.appendChild(small);
     const dl = document.createElement("dl"); dl.className = "words";
     for (const k of KEYS) {
       const dt = document.createElement("dt"); dt.textContent = LABELS[k];
-      const dd = document.createElement("dd"); dd.textContent = (w[k] || "").trim() || "—";
+      const base = phase === "pm" ? val(data[team].am, k) : "";
+      const dd = document.createElement("dd"); dd.textContent = val(w, k) || (base ? base + "（午前のまま）" : "—");
       dl.append(dt, dd);
     }
     const ta = document.createElement("textarea"); ta.className = "prompt"; ta.readOnly = true;
     ta.setAttribute("aria-label", `チーム${team}のプロンプト`);
-    ta.value = build(filled(w).v);
+    ta.value = build(filled(w, phase === "pm" ? data[team].am : null).v);
     const btn = document.createElement("button"); btn.type = "button"; btn.className = "copy"; btn.textContent = "コピー";
     const st = document.createElement("span"); st.className = "status"; st.setAttribute("role", "status");
     btn.addEventListener("click", () => copyText(ta, st));
@@ -205,13 +256,44 @@ function renderAll() {
     box.appendChild(card);
   }
 }
+function renderCmp() {
+  const box = document.getElementById("cmpCards");
+  box.textContent = "";
+  for (const team of TEAMS) {
+    const am = data[team].am, pm = data[team].pm;
+    const card = document.createElement("article"); card.className = "card";
+    const h = document.createElement("h2"); h.textContent = `チーム${team}`;
+    let changed = 0;
+    const table = document.createElement("table"); table.className = "cmp";
+    const head = document.createElement("tr");
+    for (const t of ["", "午前", "午後"]) { const th = document.createElement("th"); th.textContent = t; head.appendChild(th); }
+    table.appendChild(head);
+    for (const k of KEYS) {
+      const a = val(am, k), p = val(pm, k);
+      const tr = document.createElement("tr");
+      if (p && p !== a) { tr.className = "changed"; changed++; }
+      for (const t of [LABELS[k], a || "—", p || (a ? "（そのまま）" : "—")]) { const td = document.createElement("td"); td.textContent = t; tr.appendChild(td); }
+      table.appendChild(tr);
+    }
+    const chip = document.createElement("span");
+    const anyPm = KEYS.some(k => val(pm, k));
+    chip.className = "chip" + (changed ? "" : " same");
+    chip.textContent = !anyPm ? "午後はまだ" : changed ? `${changed}つ変わった` : "変わらなかった";
+    h.appendChild(chip);
+    card.append(h, table);
+    box.appendChild(card);
+  }
+}
 function render() {
   document.querySelectorAll("[data-view]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === view)));
   document.querySelectorAll("[data-lang]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
-  const all = view === "all";
-  document.getElementById("teamView").hidden = all;
-  document.getElementById("allView").hidden = !all;
-  if (all) renderAll(); else renderTeam();
+  document.querySelectorAll("[data-phase]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.phase === phase)));
+  const team = TEAMS.includes(view);
+  document.getElementById("teamView").hidden = !team;
+  document.getElementById("allView").hidden = view !== "all";
+  document.getElementById("cmpView").hidden = view !== "cmp";
+  document.getElementById("phaseSeg").hidden = view === "cmp";
+  if (team) renderTeam(); else if (view === "all") renderAll(); else renderCmp();
 }
 
 function copyText(ta, status) {
@@ -221,15 +303,18 @@ function copyText(ta, status) {
 }
 
 // 送信：打ち終わって2.5秒たったら、または欄から離れたら送る（中継サービスの回数制限に配慮）
-function scheduleSend(now) {
-  clearTimeout(sendTimer);
-  if (now) send(); else sendTimer = setTimeout(send, 2500);
+function payload(team, ph) {
+  const w = data[team][ph];
+  return JSON.stringify({ team, phase: ph, a: w.a || "", b: w.b || "", c: w.c || "", d: w.d || "", t: w.t });
 }
+function scheduleSend(now) { clearTimeout(sendTimer); if (now) send(); else sendTimer = setTimeout(send, 2500); }
 async function send() {
   clearTimeout(sendTimer);
-  if (view === "all") return;
-  const w = data[view];
-  const body = JSON.stringify({ team: view, a: w.a || "", b: w.b || "", c: w.c || "", d: w.d || "", t: w.t });
+  if (!TEAMS.includes(view)) return;
+  const team = view, ph = phase;
+  const w = data[team][ph];
+  if (!w.t) return;
+  const body = payload(team, ph);
   if (w.sent === body) return;
   try {
     const r = await fetch(BASE, { method: "POST", body });
@@ -243,10 +328,12 @@ async function send() {
 function applyMessage(m) {
   let p; try { p = JSON.parse(m.message); } catch (e) { return false; }
   if (!p || !TEAMS.includes(p.team)) return false;
-  const cur = data[p.team] || {};
+  const ph = p.phase === "pm" ? "pm" : "am";   // 古い形式（phaseなし）は午前として扱う
+  const cur = data[p.team][ph] || {};
   const t = Number(p.t) || m.time * 1000;
   if (cur.t && cur.t >= t) return false;
-  data[p.team] = { a: p.a || "", b: p.b || "", c: p.c || "", d: p.d || "", t, sent: JSON.stringify({ team: p.team, a: p.a || "", b: p.b || "", c: p.c || "", d: p.d || "", t: p.t }) };
+  data[p.team][ph] = { a: p.a || "", b: p.b || "", c: p.c || "", d: p.d || "", t };
+  data[p.team][ph].sent = payload(p.team, ph);
   return true;
 }
 async function pull() {
@@ -273,20 +360,24 @@ function listen() {
 }
 
 document.querySelectorAll("[data-view]").forEach(b => b.addEventListener("click", () => {
-  if (view !== "all") send();
-  view = b.dataset.view;
-  try { localStorage.setItem("prompt2040_view", view); } catch (e) {}
+  send();
+  view = b.dataset.view; remember();
   document.getElementById("status").textContent = "";
+  render();
+}));
+document.querySelectorAll("[data-phase]").forEach(b => b.addEventListener("click", () => {
+  send();
+  phase = b.dataset.phase; remember();
   render();
 }));
 document.querySelectorAll("[data-lang]").forEach(b => b.addEventListener("click", () => { lang = b.dataset.lang; render(); }));
 const form = document.getElementById("form");
 form.addEventListener("input", () => {
-  const w = data[view] || (data[view] = {});
+  const w = data[view][phase];
   for (const k of KEYS) w[k] = document.getElementById(k).value;
   w.t = Date.now();
   writeLocal();
-  const { v, usedExample } = filled(w);
+  const { v, usedExample } = filled(w, phase === "pm" ? data[view].am : null);
   document.getElementById("prompt").value = build(v);
   document.getElementById("example").hidden = !usedExample;
   scheduleSend(false);
@@ -296,7 +387,8 @@ form.addEventListener("submit", e => { e.preventDefault(); scheduleSend(true); }
 document.getElementById("copy").addEventListener("click", () => copyText(document.getElementById("prompt"), document.getElementById("status")));
 
 readLocal();
-if (![...TEAMS, "all"].includes(view)) view = "A";
+if (![...TEAMS, "all", "cmp"].includes(view)) view = "A";
+if (!["am", "pm"].includes(phase)) phase = "am";
 render();
 pull().then(listen);
 </script>
