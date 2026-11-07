@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>2040持ち帰りプロンプト</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap">
+<style>
+/* チームの端末で入力 → ntfy.sh 経由で全端末に反映。「全チーム」タブは操作する人の画面 */
+:root {
+  --bg: #ffffff; --fg: #111111; --muted: #5f5f5f; --panel: #f2f2f2; --line: #e2e2e2;
+  --accent: #d6177f; --accent-ink: #ffffff; --accent-soft: #fce4f0; --ok: #1d7a46; --warn: #b3261e;
+  --font: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #121212; --fg: #f3f3f3; --muted: #b0b0b0; --panel: #1f1f1f; --line: #333333;
+          --accent: #ff4fa8; --accent-ink: #111111; --accent-soft: #3a1529; --ok: #5fd08f; --warn: #ff8a80; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 16px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 32px;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: 4px; background: linear-gradient(90deg, #e20002, #bc03ad); z-index: 10; }
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 18px; }
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; }
+h1 { font-size: clamp(22px, 3.2vw, 32px); font-weight: 900; margin: 0; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 14px; max-width: 60em; }
+.tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.tabs button {
+  font: 700 16px var(--font); border: 2px solid var(--fg); background: var(--bg); color: var(--fg);
+  border-radius: 999px; padding: 8px 18px; cursor: pointer;
+}
+.tabs button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+.tabs button.all { border-color: var(--accent); color: var(--accent); }
+.tabs button.all[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.sync { font-size: 13px; color: var(--muted); }
+.sync.ok { color: var(--ok); }
+.sync.ng { color: var(--warn); }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 20px; align-items: start; }
+@media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+.fields { display: grid; gap: 12px; }
+.field { background: var(--panel); border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; min-width: 0; }
+.field label { font-weight: 700; display: flex; align-items: center; gap: 10px; }
+.num { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: inline-grid; place-items: center; font-size: 14px; flex: none; }
+.field input { width: 100%; font: 700 20px var(--font); color: var(--fg); background: var(--bg); border: 2px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.field input::placeholder { color: var(--muted); font-weight: 400; }
+.hint { color: var(--muted); font-size: 13px; }
+.out { background: var(--fg); color: var(--bg); border-radius: 14px; padding: 18px; display: grid; gap: 12px; min-width: 0; }
+.out-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.out-head strong { font-size: 15px; letter-spacing: .06em; color: var(--accent-soft); }
+.lang { display: flex; gap: 6px; }
+.lang button { font: 700 13px var(--font); border-radius: 999px; padding: 4px 12px; border: 1.5px solid currentColor; background: transparent; color: inherit; cursor: pointer; }
+.lang button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+textarea.prompt { width: 100%; min-height: 150px; resize: vertical; font: 500 17px/1.7 var(--font); color: var(--fg); background: var(--bg); border: 0; border-radius: 10px; padding: 14px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.copy { font: 900 17px var(--font); background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 999px; padding: 10px 24px; cursor: pointer; }
+.status { font-size: 14px; color: var(--accent-soft); min-height: 1.4em; }
+.note { font-size: 13px; color: var(--accent-soft); }
+.settings { background: var(--accent-soft); color: var(--fg); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+.settings ul { margin: 4px 0 0; padding-left: 1.2em; }
+.all-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 760px) { .all-grid { grid-template-columns: 1fr; } }
+.card { background: var(--panel); border-radius: 14px; padding: 16px; display: grid; gap: 10px; min-width: 0; }
+.card h2 { margin: 0; font-size: 20px; font-weight: 900; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.card h2 small { font-size: 12px; color: var(--muted); font-weight: 500; }
+.words { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; font-size: 14px; }
+.words dt { color: var(--muted); }
+.words dd { margin: 0; font-weight: 700; overflow-wrap: anywhere; }
+.card textarea.prompt { min-height: 120px; font-size: 15px; border: 1px solid var(--line); }
+.card .copy { justify-self: start; }
+.card .status { color: var(--ok); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>2040年から持ち帰ったモノ　プロンプト</h1>
+      <p class="lead">チームのことばを入れると、全員の画面に反映されます。人が出ないように、AIには④（モノ）と③（使う場面）だけを渡します。①と②は発表で話そう。</p>
+    </div>
+    <div class="tabs" role="group" aria-label="表示するチーム">
+      <button type="button" data-view="A" aria-pressed="true">チームA</button>
+      <button type="button" data-view="B" aria-pressed="false">チームB</button>
+      <button type="button" data-view="C" aria-pressed="false">チームC</button>
+      <button type="button" data-view="D" aria-pressed="false">チームD</button>
+      <button type="button" data-view="all" class="all" aria-pressed="false">全チーム（操作用）</button>
+    </div>
+  </header>
+  <p class="sync" id="sync" role="status">つないでいます…</p>
+
+  <section id="teamView" class="grid">
+    <form class="fields" id="form" autocomplete="off">
+      <div class="field"><label for="a"><span class="num">1</span>どんな日本？</label><input id="a" placeholder="例：子どもが少ない"></div>
+      <div class="field"><label for="b"><span class="num">2</span>だれのため？</label><input id="b" placeholder="例：ひとり暮らしのおばあちゃん"></div>
+      <div class="field"><label for="c"><span class="num">3</span>どんなときに使う？</label><input id="c" placeholder="例：買い物に行くとき"></div>
+      <div class="field"><label for="d"><span class="num">4</span>どんなモノ？</label><input id="d" placeholder="例：空を飛ぶかご">
+        <span class="hint">ここがそのまま立体になります。形がわかることばだと出やすいです。</span></div>
+    </form>
+    <section class="out" aria-label="できあがったプロンプト">
+      <div class="out-head">
+        <strong id="outTitle">チームAのプロンプト</strong>
+        <div class="lang" role="group" aria-label="言語">
+          <button type="button" data-lang="ja" aria-pressed="true">日本語</button>
+          <button type="button" data-lang="en" aria-pressed="false">英語</button>
+        </div>
+      </div>
+      <textarea id="prompt" class="prompt" readonly aria-label="プロンプト"></textarea>
+      <p class="note" id="example" hidden>空いている欄は、例のことばで仮に入れています。</p>
+      <div class="row">
+        <button type="button" class="copy" id="copy">コピー</button>
+        <span class="status" id="status" role="status"></span>
+      </div>
+      <div class="settings">
+        <b>Tripoの設定</b>
+        <ul>
+          <li>モデルを生成 → 鉛筆アイコン（テキスト）に貼る</li>
+          <li>テクスチャ：オフ ／ トポロジー：三角形 ／ ポリゴン数：100000</li>
+          <li>人や文字が出たら「英語」に切り替えて貼り直す</li>
+        </ul>
+      </div>
+    </section>
+  </section>
+
+  <section id="allView" hidden>
+    <div class="row" style="margin-bottom:12px">
+      <span class="hint">各チームが入れたことばが、ここに集まります。コピーしてTripoに貼ってください。</span>
+      <div class="lang" role="group" aria-label="言語">
+        <button type="button" data-lang="ja" aria-pressed="true">日本語</button>
+        <button type="button" data-lang="en" aria-pressed="false">英語</button>
+      </div>
+    </div>
+    <div class="all-grid" id="cards"></div>
+  </section>
+</div>
+
+<script>
+const TOPIC = "aoki2040-yoo2g7hxwq0qb8";
+const BASE = "https://ntfy.sh/" + TOPIC;
+const TEAMS = ["A", "B", "C", "D"];
+const KEYS = ["a", "b", "c", "d"];
+const LABELS = { a: "①どんな日本", b: "②だれのため", c: "③使うとき", d: "④どんなモノ" };
+const EX = { a: "子どもが少ない", b: "ひとり暮らしのおばあちゃん", c: "買い物に行くとき", d: "空を飛ぶかご" };
+const data = { A: {}, B: {}, C: {}, D: {} };   // チームごとの最新のことば（t は更新時刻）
+let view = "A";
+let lang = "ja";
+let sendTimer = null;
+
+function readLocal() { try { Object.assign(data, JSON.parse(localStorage.getItem("prompt2040_sync") || "{}")); } catch (e) {} }
+function writeLocal() { try { localStorage.setItem("prompt2040_sync", JSON.stringify(data)); } catch (e) {} }
+try { const v = localStorage.getItem("prompt2040_view"); if (v) view = v; } catch (e) {}
+
+function setSync(text, cls) { const el = document.getElementById("sync"); el.textContent = text; el.className = "sync " + (cls || ""); }
+function clock(t) { return new Date(t).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" }); }
+
+function filled(w) {
+  const v = {}; let usedExample = false;
+  for (const k of KEYS) { const t = (w[k] || "").trim(); v[k] = t || EX[k]; if (!t) usedExample = true; }
+  return { v, usedExample };
+}
+function build(v) {
+  if (lang === "ja") {
+    return `「${v.d}」の3Dモデル。${v.c}に使う、近未来の道具。` +
+      `道具だけを1つ、手のひらサイズ。シンプルで太い形、底は平ら、細い部分なし、3Dプリント向け。`;
+  }
+  return `A 3D model of a single futuristic object: "${v.d}", a tool used ${v.c}. ` +
+    `Object only, product shot, palm-sized, simple chunky shape, flat base, no thin parts, one solid piece, 3D printable.`;
+}
+
+function renderTeam() {
+  const w = data[view] || {};
+  for (const k of KEYS) { const el = document.getElementById(k); if (document.activeElement !== el) el.value = w[k] || ""; }
+  const { v, usedExample } = filled(w);
+  document.getElementById("prompt").value = build(v);
+  document.getElementById("example").hidden = !usedExample;
+  document.getElementById("outTitle").textContent = `チーム${view}のプロンプト`;
+}
+function renderAll() {
+  const box = document.getElementById("cards");
+  box.textContent = "";
+  for (const team of TEAMS) {
+    const w = data[team] || {};
+    const card = document.createElement("article"); card.className = "card";
+    const h = document.createElement("h2"); h.textContent = `チーム${team}`;
+    const small = document.createElement("small"); small.textContent = w.t ? `更新 ${clock(w.t)}` : "まだ入力なし"; h.appendChild(small);
+    const dl = document.createElement("dl"); dl.className = "words";
+    for (const k of KEYS) {
+      const dt = document.createElement("dt"); dt.textContent = LABELS[k];
+      const dd = document.createElement("dd"); dd.textContent = (w[k] || "").trim() || "—";
+      dl.append(dt, dd);
+    }
+    const ta = document.createElement("textarea"); ta.className = "prompt"; ta.readOnly = true;
+    ta.setAttribute("aria-label", `チーム${team}のプロンプト`);
+    ta.value = build(filled(w).v);
+    const btn = document.createElement("button"); btn.type = "button"; btn.className = "copy"; btn.textContent = "コピー";
+    const st = document.createElement("span"); st.className = "status"; st.setAttribute("role", "status");
+    btn.addEventListener("click", () => copyText(ta, st));
+    const row = document.createElement("div"); row.className = "row"; row.append(btn, st);
+    card.append(h, dl, ta, row);
+    box.appendChild(card);
+  }
+}
+function render() {
+  document.querySelectorAll("[data-view]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === view)));
+  document.querySelectorAll("[data-lang]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
+  const all = view === "all";
+  document.getElementById("teamView").hidden = all;
+  document.getElementById("allView").hidden = !all;
+  if (all) renderAll(); else renderTeam();
+}
+
+function copyText(ta, status) {
+  const done = () => { status.textContent = "コピーしました。Tripoに貼ってください。"; };
+  const fallback = () => { ta.focus(); ta.select(); status.textContent = "選択しました。⌘C（Ctrl+C）でコピーしてください。"; };
+  try { navigator.clipboard.writeText(ta.value).then(done, fallback); } catch (e) { fallback(); }
+}
+
+// 送信：打ち終わって2.5秒たったら、または欄から離れたら送る（中継サービスの回数制限に配慮）
+function scheduleSend(now) {
+  clearTimeout(sendTimer);
+  if (now) send(); else sendTimer = setTimeout(send, 2500);
+}
+async function send() {
+  clearTimeout(sendTimer);
+  if (view === "all") return;
+  const w = data[view];
+  const body = JSON.stringify({ team: view, a: w.a || "", b: w.b || "", c: w.c || "", d: w.d || "", t: w.t });
+  if (w.sent === body) return;
+  try {
+    const r = await fetch(BASE, { method: "POST", body });
+    if (!r.ok) throw new Error(r.status);
+    w.sent = body; writeLocal();
+    setSync(`送信しました（${clock(Date.now())}）`, "ok");
+  } catch (e) {
+    setSync("送信できませんでした。ネットを確認してください。入力はこの端末に残っています。", "ng");
+  }
+}
+function applyMessage(m) {
+  let p; try { p = JSON.parse(m.message); } catch (e) { return false; }
+  if (!p || !TEAMS.includes(p.team)) return false;
+  const cur = data[p.team] || {};
+  const t = Number(p.t) || m.time * 1000;
+  if (cur.t && cur.t >= t) return false;
+  data[p.team] = { a: p.a || "", b: p.b || "", c: p.c || "", d: p.d || "", t, sent: JSON.stringify({ team: p.team, a: p.a || "", b: p.b || "", c: p.c || "", d: p.d || "", t: p.t }) };
+  return true;
+}
+async function pull() {
+  try {
+    const r = await fetch(BASE + "/json?poll=1&since=12h");
+    if (!r.ok) throw new Error(r.status);
+    const text = await r.text();
+    let changed = false;
+    for (const line of text.split("\n")) { if (!line.trim()) continue; try { const m = JSON.parse(line); if (m.event === "message" && applyMessage(m)) changed = true; } catch (e) {} }
+    if (changed) { writeLocal(); render(); }
+    setSync(`つながっています（${clock(Date.now())}）`, "ok");
+  } catch (e) {
+    setSync("つながっていません。この端末だけで使えます。", "ng");
+  }
+}
+function listen() {
+  try {
+    const es = new EventSource(BASE + "/sse");
+    es.onmessage = ev => { try { const m = JSON.parse(ev.data); if (m.event === "message" && applyMessage(m)) { writeLocal(); render(); } } catch (e) {} };
+    es.onopen = () => setSync(`つながっています（${clock(Date.now())}）`, "ok");
+    es.onerror = () => setSync("再接続しています…", "");
+  } catch (e) {}
+  setInterval(pull, 30000);   // 取りこぼし対策
+}
+
+document.querySelectorAll("[data-view]").forEach(b => b.addEventListener("click", () => {
+  if (view !== "all") send();
+  view = b.dataset.view;
+  try { localStorage.setItem("prompt2040_view", view); } catch (e) {}
+  document.getElementById("status").textContent = "";
+  render();
+}));
+document.querySelectorAll("[data-lang]").forEach(b => b.addEventListener("click", () => { lang = b.dataset.lang; render(); }));
+const form = document.getElementById("form");
+form.addEventListener("input", () => {
+  const w = data[view] || (data[view] = {});
+  for (const k of KEYS) w[k] = document.getElementById(k).value;
+  w.t = Date.now();
+  writeLocal();
+  const { v, usedExample } = filled(w);
+  document.getElementById("prompt").value = build(v);
+  document.getElementById("example").hidden = !usedExample;
+  scheduleSend(false);
+});
+form.addEventListener("focusout", () => scheduleSend(true));
+form.addEventListener("submit", e => { e.preventDefault(); scheduleSend(true); });
+document.getElementById("copy").addEventListener("click", () => copyText(document.getElementById("prompt"), document.getElementById("status")));
+
+readLocal();
+if (![...TEAMS, "all"].includes(view)) view = "A";
+render();
+pull().then(listen);
+</script>
+</body>
+</html>
