@@ -49,9 +49,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 .fields { display: grid; gap: 12px; }
 .field { background: var(--panel); border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; min-width: 0; }
 .field label { font-weight: 700; display: flex; align-items: center; gap: 10px; }
-.num { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: inline-grid; place-items: center; font-size: 14px; flex: none; }
-.field input { width: 100%; font: 700 20px var(--font); color: var(--fg); background: var(--bg); border: 2px solid var(--line); border-radius: 8px; padding: 10px 12px; }
-.field input::placeholder { color: var(--muted); font-weight: 400; }
+.num { min-width: 28px; padding: 0 6px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: inline-grid; place-items: center; font-size: 14px; flex: none; }
+.field input, .field textarea.shape { width: 100%; font: 700 20px var(--font); color: var(--fg); background: var(--bg); border: 2px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.field textarea.shape { resize: vertical; line-height: 1.5; min-height: 124px; }
+.field input::placeholder, .field textarea.shape::placeholder { color: var(--muted); font-weight: 400; }
 .hint { color: var(--muted); font-size: 13px; }
 .am-was { font-size: 13px; color: var(--muted); }
 .am-was b { color: var(--fg); }
@@ -194,7 +195,9 @@ textarea.fb { width: 100%; min-height: 90px; resize: vertical; font: 500 15px/1.
       <div class="field"><label for="d"><span class="num">4</span>どんなモノ？</label><input id="d" placeholder="例：家族の声が聞こえるお守り"><span class="am-was" data-was="d" hidden></span><span class="why" data-why="d" hidden></span>
         <span class="hint">ルール：手のひらにのる実物大（約6cm）のモノなら、なんでもOK。道具、ロボット、食べもの、おもちゃ、アクセサリー、楽器、お守り…。ここがそのまま立体になります。</span></div>
       <div class="field shapebox">
-        <label><span class="num">4</span>どんな形？（えらぶと、Tripoが作りやすい形のことばになる）</label>
+        <label for="g"><span class="num">形</span>どんな形？（ここがプロンプトのメインになる）</label>
+        <textarea id="g" class="shape" rows="3" placeholder="例：しずく形で、上にひもを通す穴。表にスピーカーの小さな穴"></textarea><span class="am-was" data-was="g" hidden></span><span class="why" data-why="g" hidden></span>
+        <span class="hint">形・大きさのバランス・ついているもの・さわった感じを書こう。下のボタンでえらんでもOK。</span>
         <span class="hint">もとの形（1つ）</span><div class="chips" data-group="sh"></div>
         <span class="hint">ついているもの（3つまで）</span><div class="chips" data-group="pt"></div>
         <span class="hint">ふんいき（1つ）</span><div class="chips" data-group="st"></div>
@@ -236,7 +239,7 @@ textarea.fb { width: 100%; min-height: 90px; resize: vertical; font: 500 15px/1.
         <ul>
           <li>モデルを生成 → 鉛筆アイコン（テキスト）に貼る</li>
           <li>テクスチャ：オフ ／ トポロジー：三角形 ／ ポリゴン数：100000</li>
-          <li>「どんな形？」をえらぶと、形のことばが足されて作りやすくなります。うまくいかなければ「英語」も試す</li>
+          <li>「形」の箱に書いたことが、プロンプトの先頭（メイン）になります。形・ついているもの・さわった感じを具体的に。下のボタンでえらんでもOK</li>
           <li>生成：10:30–11:00に発表して1回 ／ 11:20–11:50にチームごと5回まで</li>
         </ul>
       </div>
@@ -279,9 +282,9 @@ textarea.fb { width: 100%; min-height: 90px; resize: vertical; font: 500 15px/1.
 const TOPIC = "aoki2040-yoo2g7hxwq0qb8";
 const BASE = "https://ntfy.sh/" + TOPIC;
 const TEAMS = ["A", "B", "C", "D"];
-const KEYS = ["a", "b", "c", "d", "e"];
-const LABELS = { a: "①どんな日本", b: "②だれのため", c: "③使うとき", d: "④どんなモノ", e: "⑤伝えたいこと" };
-const EX = { a: "子どもが少ない", b: "ひとり暮らしのおばあちゃん", c: "買い物に行くとき", d: "家族の声が聞こえるお守り", e: "ひとりでも、さみしくない" };
+const KEYS = ["a", "b", "c", "d", "g", "e"];
+const LABELS = { a: "①どんな日本", b: "②だれのため", c: "③使うとき", d: "④どんなモノ", g: "形", e: "⑤伝えたいこと" };
+const EX = { a: "子どもが少ない", b: "ひとり暮らしのおばあちゃん", c: "買い物に行くとき", d: "家族の声が聞こえるお守り", g: "しずく形で、上にひもを通す穴", e: "ひとりでも、さみしくない" };
 const PHASE_NAME = { am: "午前", pm: "午後" };
 // data[team][phase] = {a,b,c,d,t,sent}
 const data = {};
@@ -334,13 +337,17 @@ function shapeText(sp, lang) {
   }
   let t = "";
   const noun = `${st ? st + " " : ""}${sh}`;
-  if (sh) t += `Shaped like ${/^[aeiou]/i.test(noun) ? "an" : "a"} ${noun}`; else if (st) t += `${st} shape`;
+  if (sh) t += `Shaped like ${/^[aeiou]/i.test(noun) ? "an" : "a"} ${noun}`; else if (st) t += `${st[0].toUpperCase()}${st.slice(1)} shape`;
   if (parts.length) t += (t ? ", with " : "With ") + parts.join(", ");
   return t ? t + ". " : "";
 }
 // うまくいった型：「〇〇」。モノだけを1つ。シンプルで太い形、底は平ら、細い部分なし。＋えらんだ形のことば
-function build(v, sp) {
+function build(v, sp, g) {
   sp = sp || { sh: "", pt: [], st: "" };
+  if (g) {
+    if (lang === "ja") return `${g}。${shapeText(sp, "ja")}「${v.d}」をイメージしたモノ。モノだけを1つ。シンプルで太い形、底は平ら、細い部分なし。`;
+    return `${g}. ${shapeText(sp, "en")}Inspired by "${v.d}". Single object only, simple chunky shape, flat base, no thin parts.`;
+  }
   if (lang === "ja") return `「${v.d}」。${shapeText(sp, "ja")}モノだけを1つ。シンプルで太い形、底は平ら、細い部分なし。`;
   return `"${v.d}". ${shapeText(sp, "en")}Single object only, simple chunky shape, flat base, no thin parts.`;
 }
@@ -408,6 +415,7 @@ function whyFor(k, t) {
     b: `どうして「${t}」のため？ その人は、いま何に困っている？`,
     c: `どうして「${t}」なの？ そのとき、いまは何が大変？`,
     d: `どうして「${t}」なら助かる？ 手のひらサイズでいいのはなぜ？`,
+    g: `どうしてその形？ 使うときの手の動きとつながっている？`,
     e: `どうしてそれを、いちばん伝えたいの？`,
   }[k];
 }
@@ -481,7 +489,7 @@ function promptFor(team, ph) {
   const w = data[team][ph];
   if (val(w, "p")) return w.p;
   const base = ph === "pm" ? data[team].am : null;
-  return build(filled(w, base).v, shapeOf(w, base));
+  return build(filled(w, base).v, shapeOf(w, base), (val(w, "g") || val(base, "g")).replace(/[。.]+$/, ""));
 }
 function renderPromptBox() {
   const w = data[view][phase];
@@ -574,7 +582,7 @@ function copyText(ta, status) {
 // 送信：打ち終わって2.5秒たったら、または欄から離れたら送る（中継サービスの回数制限に配慮）
 function payload(team, ph) {
   const w = data[team][ph];
-  return JSON.stringify({ team, phase: ph, a: w.a || "", b: w.b || "", c: w.c || "", d: w.d || "", e: w.e || "", p: w.p || "", f: w.f || "", sh: w.sh || "", pt: w.pt || "", st: w.st || "", t: w.t });
+  return JSON.stringify({ team, phase: ph, a: w.a || "", b: w.b || "", c: w.c || "", d: w.d || "", e: w.e || "", g: w.g || "", p: w.p || "", f: w.f || "", sh: w.sh || "", pt: w.pt || "", st: w.st || "", t: w.t });
 }
 function scheduleSend(now, team = view, ph = phase) {
   const key = team + ph;
@@ -604,7 +612,7 @@ function applyMessage(m) {
   const cur = data[p.team][ph] || {};
   const t = Number(p.t) || m.time * 1000;
   if (cur.t && cur.t >= t) return false;
-  data[p.team][ph] = { a: p.a || "", b: p.b || "", c: p.c || "", d: p.d || "", e: p.e || "", p: p.p || "", f: p.f || "", sh: p.sh || "", pt: p.pt || "", st: p.st || "", t };
+  data[p.team][ph] = { a: p.a || "", b: p.b || "", c: p.c || "", d: p.d || "", e: p.e || "", g: p.g || "", p: p.p || "", f: p.f || "", sh: p.sh || "", pt: p.pt || "", st: p.st || "", t };
   data[p.team][ph].sent = payload(p.team, ph);
   return true;
 }
