@@ -105,7 +105,7 @@ textarea.prompt { width: 100%; min-height: 150px; resize: vertical; font: 500 17
   <header>
     <div>
       <h1>2050年から持ち帰ったモノ　プロンプト</h1>
-      <p class="lead">チームのことばを入れると、全員の画面に反映されます。ルールは「手のひらにのる実物大の、道具かロボット」。人が出ないように、AIには④と③だけを渡します。午後は「午後のことば」に入れ直して、午前とくらべよう。</p>
+      <p class="lead">チームのことばを入れると、全員の画面に反映されます。ルールは「手のひらにのる実物大（約6cm）のモノなら、なんでもOK」。人が出ないように、AIには④と③だけを渡します。午後は「午後のことば」に入れ直して、午前とくらべよう。</p>
     </div>
     <div class="tabs" role="group" aria-label="表示">
       <button type="button" data-view="A" aria-pressed="true">チームA</button>
@@ -159,8 +159,8 @@ textarea.prompt { width: 100%; min-height: 150px; resize: vertical; font: 500 17
       <div class="field"><label for="a"><span class="num">1</span>どんな日本？</label><input id="a" placeholder="例：子どもが少ない"><span class="am-was" data-was="a" hidden></span></div>
       <div class="field"><label for="b"><span class="num">2</span>だれのため？</label><input id="b" placeholder="例：ひとり暮らしのおばあちゃん"><span class="am-was" data-was="b" hidden></span></div>
       <div class="field"><label for="c"><span class="num">3</span>どんなときに使う？</label><input id="c" placeholder="例：買い物に行くとき"><span class="am-was" data-was="c" hidden></span></div>
-      <div class="field"><label for="d"><span class="num">4</span>どんな道具・ロボット？</label><input id="d" placeholder="例：荷物を運ぶ小さなロボット"><span class="am-was" data-was="d" hidden></span>
-        <span class="hint">ルール：手のひらにのる実物大（約6cm）の、道具かロボット。ここがそのまま立体になります。</span></div>
+      <div class="field"><label for="d"><span class="num">4</span>どんなモノ？</label><input id="d" placeholder="例：家族の声が聞こえるお守り"><span class="am-was" data-was="d" hidden></span>
+        <span class="hint">ルール：手のひらにのる実物大（約6cm）のモノなら、なんでもOK。道具、ロボット、食べもの、おもちゃ、アクセサリー、楽器、お守り…。ここがそのまま立体になります。</span></div>
       <div class="field"><label for="e"><span class="num">5</span>いちばん伝えたいこと</label><input id="e" placeholder="例：ひとりでも、買い物を楽しめる"><span class="am-was" data-was="e" hidden></span>
         <span class="hint">発表で話す一言です。AIには入れません。</span></div>
       <div class="field talkbox"><label>発表のことば（自動でまとまります）</label><p id="talkText" class="talk-text"></p></div>
@@ -228,8 +228,8 @@ const TOPIC = "aoki2040-yoo2g7hxwq0qb8";
 const BASE = "https://ntfy.sh/" + TOPIC;
 const TEAMS = ["A", "B", "C", "D"];
 const KEYS = ["a", "b", "c", "d", "e"];
-const LABELS = { a: "①どんな日本", b: "②だれのため", c: "③使うとき", d: "④道具・ロボット", e: "⑤伝えたいこと" };
-const EX = { a: "子どもが少ない", b: "ひとり暮らしのおばあちゃん", c: "買い物に行くとき", d: "荷物を運ぶ小さなロボット", e: "ひとりでも、買い物を楽しめる" };
+const LABELS = { a: "①どんな日本", b: "②だれのため", c: "③使うとき", d: "④どんなモノ", e: "⑤伝えたいこと" };
+const EX = { a: "子どもが少ない", b: "ひとり暮らしのおばあちゃん", c: "買い物に行くとき", d: "家族の声が聞こえるお守り", e: "ひとりでも、さみしくない" };
 const PHASE_NAME = { am: "午前", pm: "午後" };
 // data[team][phase] = {a,b,c,d,t,sent}
 const data = {};
@@ -263,10 +263,10 @@ function filled(w, base) {
 }
 function build(v) {
   if (lang === "ja") {
-    return `手のひらにのる実物大（約6cm）の、近未来の道具・ロボット「${v.d}」。${v.c}に使う。` +
+    return `手のひらにのる実物大（約6cm）の、2050年の近未来のモノ「${v.d}」。${v.c}に使う。` +
       `モノだけを1つ。シンプルで太い形、底は平ら、細い部分なし、3Dプリント向け。`;
   }
-  return `A real-size, palm-sized (about 6 cm) futuristic handheld tool or small robot: "${v.d}", used ${v.c}. ` +
+  return `A real-size, palm-sized (about 6 cm) futuristic object from the year 2050: "${v.d}", used ${v.c}. ` +
     `Object only, product shot, simple chunky shape, flat base, no thin parts, one solid piece, 3D printable.`;
 }
 
