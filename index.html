@@ -86,6 +86,16 @@ textarea.prompt { width: 100%; min-height: 150px; resize: vertical; font: 500 17
 .cmp tr.changed td:last-child { font-weight: 900; }
 .chip { display: inline-block; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 2px 10px; background: var(--accent); color: var(--accent-ink); }
 .chip.same { background: var(--line); color: var(--fg); }
+.ghost { font: 700 13px var(--font); border-radius: 999px; padding: 4px 12px; border: 1.5px solid currentColor; background: transparent; color: inherit; cursor: pointer; }
+#promptMode { margin: 0; }
+.sf { background: var(--bg); color: var(--fg); border-radius: 12px; padding: 14px 16px; display: grid; gap: 8px; }
+.sf strong { font-size: 15px; color: var(--accent); }
+.sf ul { margin: 0; padding-left: 1.2em; font-size: 15px; font-weight: 700; display: grid; gap: 4px; }
+.why { font-size: 14px; font-weight: 700; color: var(--accent); }
+.why::before { content: "なぜ？ "; background: var(--accent); color: var(--accent-ink); border-radius: 999px; padding: 0 8px; margin-right: 6px; font-size: 12px; }
+.fb-label { font-size: 13px; color: var(--muted); font-weight: 700; }
+textarea.fb { width: 100%; min-height: 90px; resize: vertical; font: 500 15px/1.6 var(--font); color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+.card textarea.fb { background: var(--bg); }
 .talk-text { margin: 0; font-size: 17px; font-weight: 700; line-height: 1.8; }
 .talkbox { background: var(--accent-soft); }
 .card .talk-text { font-size: 16px; }
@@ -174,12 +184,12 @@ textarea.prompt { width: 100%; min-height: 150px; resize: vertical; font: 500 17
 
   <section id="teamView" class="grid">
     <form class="fields" id="form" autocomplete="off">
-      <div class="field"><label for="a"><span class="num">1</span>どんな日本？</label><input id="a" placeholder="例：子どもが少ない"><span class="am-was" data-was="a" hidden></span></div>
-      <div class="field"><label for="b"><span class="num">2</span>だれのため？</label><input id="b" placeholder="例：ひとり暮らしのおばあちゃん"><span class="am-was" data-was="b" hidden></span></div>
-      <div class="field"><label for="c"><span class="num">3</span>どんなときに使う？</label><input id="c" placeholder="例：買い物に行くとき"><span class="am-was" data-was="c" hidden></span></div>
-      <div class="field"><label for="d"><span class="num">4</span>どんなモノ？</label><input id="d" placeholder="例：家族の声が聞こえるお守り"><span class="am-was" data-was="d" hidden></span>
+      <div class="field"><label for="a"><span class="num">1</span>どんな日本？</label><input id="a" placeholder="例：子どもが少ない"><span class="am-was" data-was="a" hidden></span><span class="why" data-why="a" hidden></span></div>
+      <div class="field"><label for="b"><span class="num">2</span>だれのため？</label><input id="b" placeholder="例：ひとり暮らしのおばあちゃん"><span class="am-was" data-was="b" hidden></span><span class="why" data-why="b" hidden></span></div>
+      <div class="field"><label for="c"><span class="num">3</span>どんなときに使う？</label><input id="c" placeholder="例：買い物に行くとき"><span class="am-was" data-was="c" hidden></span><span class="why" data-why="c" hidden></span></div>
+      <div class="field"><label for="d"><span class="num">4</span>どんなモノ？</label><input id="d" placeholder="例：家族の声が聞こえるお守り"><span class="am-was" data-was="d" hidden></span><span class="why" data-why="d" hidden></span>
         <span class="hint">ルール：手のひらにのる実物大（約6cm）のモノなら、なんでもOK。道具、ロボット、食べもの、おもちゃ、アクセサリー、楽器、お守り…。ここがそのまま立体になります。</span></div>
-      <div class="field"><label for="e"><span class="num">5</span>いちばん伝えたいこと</label><input id="e" placeholder="例：ひとりでも、買い物を楽しめる"><span class="am-was" data-was="e" hidden></span>
+      <div class="field"><label for="e"><span class="num">5</span>いちばん伝えたいこと</label><input id="e" placeholder="例：ひとりでも、買い物を楽しめる"><span class="am-was" data-was="e" hidden></span><span class="why" data-why="e" hidden></span>
         <span class="hint">発表で話す一言です。AIには入れません。</span></div>
       <div class="field talkbox"><label>発表のことば（自動でまとまります）</label><p id="talkText" class="talk-text"></p></div>
     </form>
@@ -191,12 +201,26 @@ textarea.prompt { width: 100%; min-height: 150px; resize: vertical; font: 500 17
           <button type="button" data-lang="en" aria-pressed="false">英語</button>
         </div>
       </div>
-      <textarea id="prompt" class="prompt" readonly aria-label="プロンプト"></textarea>
+      <textarea id="prompt" class="prompt" aria-label="プロンプト（編集できます）"></textarea>
+      <div class="row">
+        <p class="note" id="promptMode">自動でつくったプロンプトです。直接書きかえることもできます。</p>
+        <button type="button" class="ghost" id="resetPrompt" hidden>自動に戻す</button>
+      </div>
       <p class="note" id="example" hidden>空いている欄は、例のことばで仮に入れています。</p>
       <div class="row">
         <button type="button" class="copy" id="copy">コピー</button>
         <span class="status" id="status" role="status"></span>
       </div>
+      <section class="sf" aria-label="SF作家からのフィードバック">
+        <div class="row"><strong>SF作家からのひとこと</strong><button type="button" class="ghost" id="nextSf">ほかの問い</button></div>
+        <ul id="sfList"></ul>
+        <label for="fb" class="fb-label">フィードバック欄（だれでも書ける・全員に反映）</label>
+        <textarea id="fb" class="fb" placeholder="スタッフや他のチームからの感想、AIにもらったフィードバックを貼ってもOK"></textarea>
+        <div class="row">
+          <button type="button" class="ghost" id="copyAsk">SF作家風のフィードバックを頼む文をコピー</button>
+          <span class="status" id="statusAsk" role="status"></span>
+        </div>
+      </section>
       <div class="settings">
         <b>Tripoの設定</b>
         <ul>
@@ -255,8 +279,9 @@ for (const t of TEAMS) data[t] = { am: {}, pm: {} };
 let view = "A";
 let phase = "am";
 let lang = "ja";
-let sendTimer = null;
 let tphase = "am";
+let sfSeed = 0;
+const timers = {};
 
 function readLocal() {
   try {
@@ -317,6 +342,51 @@ function renderTalk() {
 function allTalkText() {
   return TEAMS.map(t => `チーム${t}：` + talkText(data[t][tphase], tphase === "pm" ? data[t].am : null)).join("\n");
 }
+// SF作家風のひとこと：入れたことばから「もし〜なら？」の問いをつくる（AIは使わない）
+function sfQuestions(w, base, seed) {
+  const g = (k, ex) => val(w, k) || val(base, k) || ex;
+  const a = g("a", "人が少ない"), b = g("b", "だれか"), c = g("c", "ふだん"), d = g("d", "そのモノ");
+  const qs = [
+    `「${d}」がこわれた日、${b}はどうする？ だれが直す？`,
+    `「${d}」を持っていない人は、2050年にどんな気持ち？`,
+    `${a}2050年。「${d}」が広まると、なにが消えて、なにが生まれる？`,
+    `「${d}」が当たり前になったら、いまの「${c}」はどう変わる？`,
+    `この物語の悪役はだれ？ 「${d}」を悪いことに使う人はいる？`,
+    `100年後の博物館。「${d}」の横には、どんな説明が書かれている？`,
+    `「${d}」がなかったら、2050年の${b}は何に困っていた？`,
+    `「${d}」のせいで、ちょっと不便になる人はいない？`,
+  ];
+  const out = [];
+  for (let i = 0; i < 3; i++) out.push(qs[(seed * 3 + i) % qs.length]);
+  return out;
+}
+function askText(team, ph) {
+  const w = data[team][ph], base = ph === "pm" ? data[team].am : null;
+  const g = k => val(w, k) || val(base, k) || "（まだ）";
+  return `あなたは日本のSF作家です。中学生のチームが「2050年から持ち帰ったモノ」を考えました。\n` +
+    `①どんな日本：${g("a")}\n②だれのため：${g("b")}\n③使うとき：${g("c")}\n④どんなモノ（手のひらサイズ）：${g("d")}\n⑤伝えたいこと：${g("e")}\n` +
+    `SF作家として、このアイデアの面白いところを1つほめて、物語がもっと深くなる「もし〜なら？」の問いを2つ出してください。` +
+    `明るい面だけでなく、なってほしくない未来の側からの問いも1つ入れてください。中学生に伝わることばで、全部で150字くらいにしてください。`;
+}
+// 入れたことばに「なぜ？」のツッコミを出す
+function whyFor(k, t) {
+  if (!t) return "";
+  return {
+    a: `どうして「${t}」日本になると思う？ 数字のヒントにある？`,
+    b: `どうして「${t}」のため？ その人は、いま何に困っている？`,
+    c: `どうして「${t}」なの？ そのとき、いまは何が大変？`,
+    d: `どうして「${t}」なら助かる？ 手のひらサイズでいいのはなぜ？`,
+    e: `どうしてそれを、いちばん伝えたいの？`,
+  }[k];
+}
+function renderWhy() {
+  const w = data[view][phase];
+  for (const k of KEYS) {
+    const el = document.querySelector(`[data-why="${k}"]`);
+    const t = whyFor(k, val(w, k));
+    el.hidden = !t; el.textContent = t;
+  }
+}
 function renderTeam() {
   const w = data[view][phase];
   for (const k of KEYS) {
@@ -334,11 +404,29 @@ function renderTeam() {
       el.placeholder = "例：" + EX[k];
     }
   }
-  const { v, usedExample } = filled(w, phase === "pm" ? data[view].am : null);
-  document.getElementById("prompt").value = build(v);
-  document.getElementById("example").hidden = !usedExample;
+  renderPromptBox();
+  renderWhy();
   document.getElementById("outTitle").textContent = `チーム${view}のプロンプト（${PHASE_NAME[phase]}）`;
   document.getElementById("talkText").textContent = talkText(w, phase === "pm" ? data[view].am : null);
+  const list = document.getElementById("sfList"); list.textContent = "";
+  for (const q of sfQuestions(w, phase === "pm" ? data[view].am : null, sfSeed)) { const li = document.createElement("li"); li.textContent = q; list.appendChild(li); }
+  const fb = document.getElementById("fb");
+  if (document.activeElement !== fb) fb.value = w.f || "";
+}
+function promptFor(team, ph) {
+  const w = data[team][ph];
+  if (val(w, "p")) return w.p;
+  return build(filled(w, ph === "pm" ? data[team].am : null).v);
+}
+function renderPromptBox() {
+  const w = data[view][phase];
+  const ta = document.getElementById("prompt");
+  if (document.activeElement !== ta) ta.value = promptFor(view, phase);
+  const manual = !!val(w, "p");
+  document.getElementById("promptMode").textContent = manual ? "手で書きかえたプロンプトです（全員に反映）。" : "自動でつくったプロンプトです。直接書きかえることもできます。";
+  document.getElementById("resetPrompt").hidden = !manual;
+  const { usedExample } = filled(w, phase === "pm" ? data[view].am : null);
+  document.getElementById("example").hidden = manual || !usedExample;
 }
 function renderAll() {
   const box = document.getElementById("cards");
@@ -355,14 +443,18 @@ function renderAll() {
       const dd = document.createElement("dd"); dd.textContent = val(w, k) || (base ? base + "（午前のまま）" : "—");
       dl.append(dt, dd);
     }
-    const ta = document.createElement("textarea"); ta.className = "prompt"; ta.readOnly = true;
-    ta.setAttribute("aria-label", `チーム${team}のプロンプト`);
-    ta.value = build(filled(w, phase === "pm" ? data[team].am : null).v);
+    const ta = document.createElement("textarea"); ta.className = "prompt";
+    ta.setAttribute("aria-label", `チーム${team}のプロンプト（編集できます）`);
+    ta.value = promptFor(team, phase);
+    const ph = phase;
+    ta.addEventListener("input", () => { const x = data[team][ph]; x.p = ta.value; x.t = Date.now(); writeLocal(); scheduleSend(false, team, ph); });
+    ta.addEventListener("blur", () => scheduleSend(true, team, ph));
     const btn = document.createElement("button"); btn.type = "button"; btn.className = "copy"; btn.textContent = "コピー";
     const st = document.createElement("span"); st.className = "status"; st.setAttribute("role", "status");
     btn.addEventListener("click", () => copyText(ta, st));
     const row = document.createElement("div"); row.className = "row"; row.append(btn, st);
     card.append(h, dl, ta, row);
+    if (val(w, "f")) { const fbp = document.createElement("p"); fbp.className = "note"; fbp.style.color = "var(--muted)"; fbp.textContent = "フィードバック：" + w.f; card.appendChild(fbp); }
     box.appendChild(card);
   }
 }
@@ -417,13 +509,16 @@ function copyText(ta, status) {
 // 送信：打ち終わって2.5秒たったら、または欄から離れたら送る（中継サービスの回数制限に配慮）
 function payload(team, ph) {
   const w = data[team][ph];
-  return JSON.stringify({ team, phase: ph, a: w.a || "", b: w.b || "", c: w.c || "", d: w.d || "", e: w.e || "", t: w.t });
+  return JSON.stringify({ team, phase: ph, a: w.a || "", b: w.b || "", c: w.c || "", d: w.d || "", e: w.e || "", p: w.p || "", f: w.f || "", t: w.t });
 }
-function scheduleSend(now) { clearTimeout(sendTimer); if (now) send(); else sendTimer = setTimeout(send, 2500); }
-async function send() {
-  clearTimeout(sendTimer);
-  if (!TEAMS.includes(view)) return;
-  const team = view, ph = phase;
+function scheduleSend(now, team = view, ph = phase) {
+  const key = team + ph;
+  clearTimeout(timers[key]);
+  if (now) send(team, ph); else timers[key] = setTimeout(() => send(team, ph), 2500);
+}
+async function send(team = view, ph = phase) {
+  clearTimeout(timers[team + ph]);
+  if (!TEAMS.includes(team)) return;
   const w = data[team][ph];
   if (!w.t) return;
   const body = payload(team, ph);
@@ -444,7 +539,7 @@ function applyMessage(m) {
   const cur = data[p.team][ph] || {};
   const t = Number(p.t) || m.time * 1000;
   if (cur.t && cur.t >= t) return false;
-  data[p.team][ph] = { a: p.a || "", b: p.b || "", c: p.c || "", d: p.d || "", e: p.e || "", t };
+  data[p.team][ph] = { a: p.a || "", b: p.b || "", c: p.c || "", d: p.d || "", e: p.e || "", p: p.p || "", f: p.f || "", t };
   data[p.team][ph].sent = payload(p.team, ph);
   return true;
 }
@@ -496,11 +591,33 @@ form.addEventListener("input", () => {
   for (const k of KEYS) w[k] = document.getElementById(k).value;
   w.t = Date.now();
   writeLocal();
-  const { v, usedExample } = filled(w, phase === "pm" ? data[view].am : null);
-  document.getElementById("prompt").value = build(v);
-  document.getElementById("example").hidden = !usedExample;
+  renderPromptBox();
+  renderWhy();
   document.getElementById("talkText").textContent = talkText(w, phase === "pm" ? data[view].am : null);
+  const list = document.getElementById("sfList"); list.textContent = "";
+  for (const q of sfQuestions(w, phase === "pm" ? data[view].am : null, sfSeed)) { const li = document.createElement("li"); li.textContent = q; list.appendChild(li); }
   scheduleSend(false);
+});
+const promptTa = document.getElementById("prompt");
+promptTa.addEventListener("input", () => {
+  const w = data[view][phase]; w.p = promptTa.value; w.t = Date.now(); writeLocal();
+  document.getElementById("promptMode").textContent = "手で書きかえたプロンプトです（全員に反映）。";
+  document.getElementById("resetPrompt").hidden = false;
+  scheduleSend(false);
+});
+promptTa.addEventListener("blur", () => scheduleSend(true));
+document.getElementById("resetPrompt").addEventListener("click", () => {
+  const w = data[view][phase]; w.p = ""; w.t = Date.now(); writeLocal(); renderPromptBox(); scheduleSend(true);
+});
+const fbTa = document.getElementById("fb");
+fbTa.addEventListener("input", () => { const w = data[view][phase]; w.f = fbTa.value; w.t = Date.now(); writeLocal(); scheduleSend(false); });
+fbTa.addEventListener("blur", () => scheduleSend(true));
+document.getElementById("nextSf").addEventListener("click", () => { sfSeed++; renderTeam(); });
+document.getElementById("copyAsk").addEventListener("click", () => {
+  const st = document.getElementById("statusAsk");
+  const text = askText(view, phase);
+  try { navigator.clipboard.writeText(text).then(() => { st.textContent = "コピーしました。ChatGPTやClaudeに貼ってください。"; }, () => { st.textContent = "コピーできませんでした"; }); }
+  catch (e) { st.textContent = "コピーできませんでした"; }
 });
 form.addEventListener("focusout", () => scheduleSend(true));
 form.addEventListener("submit", e => { e.preventDefault(); scheduleSend(true); });
