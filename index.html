@@ -86,6 +86,14 @@ textarea.prompt { width: 100%; min-height: 150px; resize: vertical; font: 500 17
 .cmp tr.changed td:last-child { font-weight: 900; }
 .chip { display: inline-block; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 2px 10px; background: var(--accent); color: var(--accent-ink); }
 .chip.same { background: var(--line); color: var(--fg); }
+.hints details { background: var(--panel); border-radius: 12px; padding: 12px 16px; }
+.hints summary { font-weight: 700; cursor: pointer; }
+.hint-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 24px; margin-top: 6px; }
+@media (max-width: 760px) { .hint-grid { grid-template-columns: 1fr; } }
+.hint-grid h3 { margin: 6px 0 0; font-size: 14px; color: var(--accent); }
+.hint-grid ul { margin: 2px 0 0; padding-left: 1.2em; font-size: 14px; }
+.hint-grid li b { font-variant-numeric: tabular-nums; }
+.hints .src { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
@@ -112,6 +120,35 @@ textarea.prompt { width: 100%; min-height: 150px; resize: vertical; font: 500 17
     </div>
     <p class="sync" id="sync" role="status">つないでいます…</p>
   </div>
+
+  <section class="hints" id="hints">
+    <details open>
+      <summary>数字のヒント（いま と 2050年）</summary>
+      <div class="hint-grid">
+        <div>
+          <h3>いま</h3>
+          <ul>
+            <li>日本の人口は<b>約1億2,281万人</b>。1年で約61万人へっている（2026年）</li>
+            <li>1年に生まれた赤ちゃんは<b>約67万人</b>で過去最少（2025年）</li>
+            <li>だれも住んでいない家が<b>約900万戸</b>。7〜8軒に1軒（2023年）</li>
+            <li>日本に住む外国の人は<b>約428万人</b>で過去最多（2026年）</li>
+            <li>話しかけると答えるAIを、<b>1週間に10億人以上</b>が使っている</li>
+          </ul>
+        </div>
+        <div>
+          <h3>2050年（予測）</h3>
+          <ul>
+            <li>日本の人口は<b>1億469万人</b>。いまより約1,800万人へる</li>
+            <li>65歳以上の人が<b>37.1%</b>。3人に1人以上</li>
+            <li>2040年には働き手が<b>約1,100万人</b>足りなくなる試算も</li>
+            <li>サハラより南のアフリカは<b>22億人</b>に。30年で約1.8倍（2054年）</li>
+            <li>世界の人口は2080年代に<b>約103億人</b>でいちばん多くなる見通し</li>
+          </ul>
+        </div>
+      </div>
+      <p class="src">出典：総務省統計局、厚生労働省、出入国在留管理庁、内閣府『高齢社会白書』（国立社会保障・人口問題研究所の推計）、国連、OpenAI、リクルートワークス研究所</p>
+    </details>
+  </section>
 
   <section id="teamView" class="grid">
     <form class="fields" id="form" autocomplete="off">
@@ -290,6 +327,7 @@ function render() {
   document.querySelectorAll("[data-phase]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.phase === phase)));
   const team = TEAMS.includes(view);
   document.getElementById("teamView").hidden = !team;
+  document.getElementById("hints").hidden = !team;
   document.getElementById("allView").hidden = view !== "all";
   document.getElementById("cmpView").hidden = view !== "cmp";
   document.getElementById("phaseSeg").hidden = view === "cmp";
