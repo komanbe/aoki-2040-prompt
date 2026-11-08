@@ -96,6 +96,10 @@ textarea.prompt { width: 100%; min-height: 150px; resize: vertical; font: 500 17
 .fb-label { font-size: 13px; color: var(--muted); font-weight: 700; }
 textarea.fb { width: 100%; min-height: 90px; resize: vertical; font: 500 15px/1.6 var(--font); color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
 .card textarea.fb { background: var(--bg); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { font: 700 14px var(--font); border: 1.5px solid var(--line); background: var(--bg); color: var(--fg); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+.chips button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.shapebox .hint { margin-top: 4px; }
 .talk-text { margin: 0; font-size: 17px; font-weight: 700; line-height: 1.8; }
 .talkbox { background: var(--accent-soft); }
 .card .talk-text { font-size: 16px; }
@@ -189,6 +193,12 @@ textarea.fb { width: 100%; min-height: 90px; resize: vertical; font: 500 15px/1.
       <div class="field"><label for="c"><span class="num">3</span>どんなときに使う？</label><input id="c" placeholder="例：買い物に行くとき"><span class="am-was" data-was="c" hidden></span><span class="why" data-why="c" hidden></span></div>
       <div class="field"><label for="d"><span class="num">4</span>どんなモノ？</label><input id="d" placeholder="例：家族の声が聞こえるお守り"><span class="am-was" data-was="d" hidden></span><span class="why" data-why="d" hidden></span>
         <span class="hint">ルール：手のひらにのる実物大（約6cm）のモノなら、なんでもOK。道具、ロボット、食べもの、おもちゃ、アクセサリー、楽器、お守り…。ここがそのまま立体になります。</span></div>
+      <div class="field shapebox">
+        <label><span class="num">4</span>どんな形？（えらぶと、Tripoが作りやすい形のことばになる）</label>
+        <span class="hint">もとの形（1つ）</span><div class="chips" data-group="sh"></div>
+        <span class="hint">ついているもの（3つまで）</span><div class="chips" data-group="pt"></div>
+        <span class="hint">ふんいき（1つ）</span><div class="chips" data-group="st"></div>
+      </div>
       <div class="field"><label for="e"><span class="num">5</span>いちばん伝えたいこと</label><input id="e" placeholder="例：ひとりでも、買い物を楽しめる"><span class="am-was" data-was="e" hidden></span><span class="why" data-why="e" hidden></span>
         <span class="hint">発表で話す一言です。AIには入れません。</span></div>
       <div class="field talkbox"><label>発表のことば（自動でまとまります）</label><p id="talkText" class="talk-text"></p></div>
@@ -197,8 +207,8 @@ textarea.fb { width: 100%; min-height: 90px; resize: vertical; font: 500 15px/1.
       <div class="out-head">
         <strong id="outTitle">チームAのプロンプト（午前）</strong>
         <div class="lang" role="group" aria-label="言語">
-          <button type="button" data-lang="en" aria-pressed="true">英語</button>
-          <button type="button" data-lang="ja" aria-pressed="false">日本語</button>
+          <button type="button" data-lang="ja" aria-pressed="true">日本語</button>
+          <button type="button" data-lang="en" aria-pressed="false">英語</button>
         </div>
       </div>
       <textarea id="prompt" class="prompt" aria-label="プロンプト（編集できます）"></textarea>
@@ -226,7 +236,7 @@ textarea.fb { width: 100%; min-height: 90px; resize: vertical; font: 500 15px/1.
         <ul>
           <li>モデルを生成 → 鉛筆アイコン（テキスト）に貼る</li>
           <li>テクスチャ：オフ ／ トポロジー：三角形 ／ ポリゴン数：100000</li>
-          <li>英語の短い文がいちばん形がきれいに出ます。うまくいかなければ「日本語」も試す</li>
+          <li>「どんな形？」をえらぶと、形のことばが足されて作りやすくなります。うまくいかなければ「英語」も試す</li>
           <li>生成：10:30–11:00に発表して1回 ／ 11:20–11:50にチームごと5回まで</li>
         </ul>
       </div>
@@ -237,8 +247,8 @@ textarea.fb { width: 100%; min-height: 90px; resize: vertical; font: 500 15px/1.
     <div class="row" style="margin-bottom:12px">
       <span class="hint">各チームが入れたことばが、ここに集まります。コピーしてTripoに貼ってください。</span>
       <div class="lang" role="group" aria-label="言語">
-        <button type="button" data-lang="en" aria-pressed="true">英語</button>
-        <button type="button" data-lang="ja" aria-pressed="false">日本語</button>
+        <button type="button" data-lang="ja" aria-pressed="true">日本語</button>
+        <button type="button" data-lang="en" aria-pressed="false">英語</button>
       </div>
     </div>
     <div class="cards" id="cards"></div>
@@ -278,7 +288,7 @@ const data = {};
 for (const t of TEAMS) data[t] = { am: {}, pm: {} };
 let view = "A";
 let phase = "am";
-let lang = "en";
+let lang = "ja";
 let tphase = "am";
 let sfSeed = 0;
 const timers = {};
@@ -304,10 +314,35 @@ function filled(w, base) {
   for (const k of PROMPT_KEYS) { const t = val(w, k) || val(base, k); v[k] = t || EX[k]; if (!t) usedExample = true; }
   return { v, usedExample };
 }
-function build(v) {
-  // 試した中でいちばん形がよかった短い言い方（形だけを伝える）
-  if (lang === "ja") return `${v.d}。近未来のプロダクトデザイン。モノだけ。太くシンプルな形、底は平ら。`;
-  return `Futuristic ${v.d}, product design, object only, chunky simple shape, flat base.`;
+const SHAPES = { sphere: ["まる", "まるい玉", "round ball"], egg: ["たまご", "たまご", "egg"], box: ["はこ", "四角い箱", "box"], cylinder: ["つつ", "つつ", "cylinder"], plate: ["いた", "うすい板", "flat tablet"], drop: ["しずく", "しずく", "teardrop"], dome: ["ドーム", "ドーム", "dome"], ring: ["わっか", "わっか", "ring"], stick: ["ぼう", "太いぼう", "thick stick"], gun: ["ピストル", "ピストル", "pistol"] };
+const PARTS = { buttons: ["ボタン", "ボタン", "buttons"], screen: ["画面", "小さな画面", "a small screen"], antenna: ["アンテナ", "太くて短いアンテナ", "a short thick antenna"], wings: ["羽", "小さな羽", "small wings"], wheels: ["車輪", "車輪", "wheels"], loop: ["ひも穴", "ひもを通す穴", "a strap loop"], handle: ["取っ手", "取っ手", "a handle"], light: ["ライト", "まるいライト", "a round light"], speaker: ["スピーカー", "スピーカーの穴", "a speaker grille"], eyes: ["目", "まるい2つの目", "two round eyes"], legs: ["足", "短い足", "short legs"], lid: ["ふた", "ふた", "a lid"] };
+const STYLES = { soft: ["丸っこい", "丸っこい", "soft rounded"], angular: ["カクカク", "カクカクした", "angular faceted"], sleek: ["つるつる", "つるつるの", "sleek smooth"], rugged: ["ゴツゴツ", "ゴツゴツした", "rugged"], cute: ["かわいい", "かわいい", "cute"], cool: ["かっこいい", "かっこいい", "cool futuristic"] };
+function shapeOf(w, base) {
+  const g = k => val(w, k) || val(base, k);
+  return { sh: g("sh"), pt: (g("pt") || "").split(",").filter(Boolean), st: g("st") };
+}
+function shapeText(sp, lang) {
+  const i = lang === "ja" ? 1 : 2;
+  const st = sp.st && STYLES[sp.st] ? STYLES[sp.st][i] : "";
+  const sh = sp.sh && SHAPES[sp.sh] ? SHAPES[sp.sh][i] : "";
+  const parts = sp.pt.filter(k => PARTS[k]).map(k => PARTS[k][i]);
+  if (lang === "ja") {
+    let t = "";
+    if (sh) t += `${st}${sh}の形。`; else if (st) t += `${st}形。`;
+    if (parts.length) t += `${parts.join("と")}がついている。`;
+    return t;
+  }
+  let t = "";
+  const noun = `${st ? st + " " : ""}${sh}`;
+  if (sh) t += `Shaped like ${/^[aeiou]/i.test(noun) ? "an" : "a"} ${noun}`; else if (st) t += `${st} shape`;
+  if (parts.length) t += (t ? ", with " : "With ") + parts.join(", ");
+  return t ? t + ". " : "";
+}
+// うまくいった型：「〇〇」。モノだけを1つ。シンプルで太い形、底は平ら、細い部分なし。＋えらんだ形のことば
+function build(v, sp) {
+  sp = sp || { sh: "", pt: [], st: "" };
+  if (lang === "ja") return `「${v.d}」。${shapeText(sp, "ja")}モノだけを1つ。シンプルで太い形、底は平ら、細い部分なし。`;
+  return `"${v.d}". ${shapeText(sp, "en")}Single object only, simple chunky shape, flat base, no thin parts.`;
 }
 
 // 発表のことば：①〜⑤から自動でまとめる（空欄は例のことばを使わず、言えるところだけ）
@@ -384,6 +419,37 @@ function renderWhy() {
     el.hidden = !t; el.textContent = t;
   }
 }
+function renderChips() {
+  const w = data[view][phase];
+  const sp = shapeOf(w, phase === "pm" ? data[view].am : null);
+  const groups = { sh: SHAPES, pt: PARTS, st: STYLES };
+  for (const [g, dict] of Object.entries(groups)) {
+    const box = document.querySelector(`.chips[data-group="${g}"]`);
+    if (!box.childElementCount) {
+      for (const [k, v] of Object.entries(dict)) {
+        const b = document.createElement("button"); b.type = "button"; b.dataset.v = k; b.textContent = v[0];
+        b.addEventListener("click", () => pickChip(g, k));
+        box.appendChild(b);
+      }
+    }
+    for (const b of box.children) {
+      const on = g === "pt" ? sp.pt.includes(b.dataset.v) : sp[g] === b.dataset.v;
+      b.setAttribute("aria-pressed", String(on));
+    }
+  }
+}
+function pickChip(g, k) {
+  const w = data[view][phase];
+  const sp = shapeOf(w, phase === "pm" ? data[view].am : null);
+  if (g === "pt") {
+    let list = sp.pt.includes(k) ? sp.pt.filter(x => x !== k) : [...sp.pt, k];
+    if (list.length > 3) list = list.slice(-3);
+    w.pt = list.join(",") || " ";
+  } else {
+    w[g] = sp[g] === k ? " " : k;
+  }
+  w.t = Date.now(); writeLocal(); renderChips(); renderPromptBox(); scheduleSend(false);
+}
 function renderTeam() {
   const w = data[view][phase];
   for (const k of KEYS) {
@@ -403,6 +469,7 @@ function renderTeam() {
   }
   renderPromptBox();
   renderWhy();
+  renderChips();
   document.getElementById("outTitle").textContent = `チーム${view}のプロンプト（${PHASE_NAME[phase]}）`;
   document.getElementById("talkText").textContent = talkText(w, phase === "pm" ? data[view].am : null);
   const list = document.getElementById("sfList"); list.textContent = "";
@@ -413,7 +480,8 @@ function renderTeam() {
 function promptFor(team, ph) {
   const w = data[team][ph];
   if (val(w, "p")) return w.p;
-  return build(filled(w, ph === "pm" ? data[team].am : null).v);
+  const base = ph === "pm" ? data[team].am : null;
+  return build(filled(w, base).v, shapeOf(w, base));
 }
 function renderPromptBox() {
   const w = data[view][phase];
@@ -506,7 +574,7 @@ function copyText(ta, status) {
 // 送信：打ち終わって2.5秒たったら、または欄から離れたら送る（中継サービスの回数制限に配慮）
 function payload(team, ph) {
   const w = data[team][ph];
-  return JSON.stringify({ team, phase: ph, a: w.a || "", b: w.b || "", c: w.c || "", d: w.d || "", e: w.e || "", p: w.p || "", f: w.f || "", t: w.t });
+  return JSON.stringify({ team, phase: ph, a: w.a || "", b: w.b || "", c: w.c || "", d: w.d || "", e: w.e || "", p: w.p || "", f: w.f || "", sh: w.sh || "", pt: w.pt || "", st: w.st || "", t: w.t });
 }
 function scheduleSend(now, team = view, ph = phase) {
   const key = team + ph;
@@ -536,7 +604,7 @@ function applyMessage(m) {
   const cur = data[p.team][ph] || {};
   const t = Number(p.t) || m.time * 1000;
   if (cur.t && cur.t >= t) return false;
-  data[p.team][ph] = { a: p.a || "", b: p.b || "", c: p.c || "", d: p.d || "", e: p.e || "", p: p.p || "", f: p.f || "", t };
+  data[p.team][ph] = { a: p.a || "", b: p.b || "", c: p.c || "", d: p.d || "", e: p.e || "", p: p.p || "", f: p.f || "", sh: p.sh || "", pt: p.pt || "", st: p.st || "", t };
   data[p.team][ph].sent = payload(p.team, ph);
   return true;
 }
