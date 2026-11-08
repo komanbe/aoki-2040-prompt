@@ -115,7 +115,7 @@ textarea.fb { width: 100%; min-height: 90px; resize: vertical; font: 500 15px/1.
   <header>
     <div>
       <h1>2050年から持ち帰ったモノ　プロンプト</h1>
-      <p class="lead">チームのことばを入れると、全員の画面に反映されます。ルールは「手のひらにのる実物大（約6cm）のモノなら、なんでもOK」。人が出ないように、AIには④と③だけを渡します。午後は「午後のことば」に入れ直して、午前とくらべよう。</p>
+      <p class="lead">チームのことばを入れると、全員の画面に反映されます。ルールは「手のひらにのる実物大（約6cm）のモノなら、なんでもOK」。AIには④（どんなモノ）だけを短く渡します。午後は「午後のことば」に入れ直して、午前とくらべよう。</p>
     </div>
     <div class="tabs" role="group" aria-label="表示">
       <button type="button" data-view="A" aria-pressed="true">チームA</button>
@@ -197,8 +197,8 @@ textarea.fb { width: 100%; min-height: 90px; resize: vertical; font: 500 15px/1.
       <div class="out-head">
         <strong id="outTitle">チームAのプロンプト（午前）</strong>
         <div class="lang" role="group" aria-label="言語">
-          <button type="button" data-lang="ja" aria-pressed="true">日本語</button>
-          <button type="button" data-lang="en" aria-pressed="false">英語</button>
+          <button type="button" data-lang="en" aria-pressed="true">英語</button>
+          <button type="button" data-lang="ja" aria-pressed="false">日本語</button>
         </div>
       </div>
       <textarea id="prompt" class="prompt" aria-label="プロンプト（編集できます）"></textarea>
@@ -226,7 +226,7 @@ textarea.fb { width: 100%; min-height: 90px; resize: vertical; font: 500 15px/1.
         <ul>
           <li>モデルを生成 → 鉛筆アイコン（テキスト）に貼る</li>
           <li>テクスチャ：オフ ／ トポロジー：三角形 ／ ポリゴン数：100000</li>
-          <li>人や文字が出たら「英語」に切り替えて貼り直す</li>
+          <li>英語の短い文がいちばん形がきれいに出ます。うまくいかなければ「日本語」も試す</li>
           <li>生成：10:30–11:00に発表して1回 ／ 11:20–11:50にチームごと5回まで</li>
         </ul>
       </div>
@@ -237,8 +237,8 @@ textarea.fb { width: 100%; min-height: 90px; resize: vertical; font: 500 15px/1.
     <div class="row" style="margin-bottom:12px">
       <span class="hint">各チームが入れたことばが、ここに集まります。コピーしてTripoに貼ってください。</span>
       <div class="lang" role="group" aria-label="言語">
-        <button type="button" data-lang="ja" aria-pressed="true">日本語</button>
-        <button type="button" data-lang="en" aria-pressed="false">英語</button>
+        <button type="button" data-lang="en" aria-pressed="true">英語</button>
+        <button type="button" data-lang="ja" aria-pressed="false">日本語</button>
       </div>
     </div>
     <div class="cards" id="cards"></div>
@@ -278,7 +278,7 @@ const data = {};
 for (const t of TEAMS) data[t] = { am: {}, pm: {} };
 let view = "A";
 let phase = "am";
-let lang = "ja";
+let lang = "en";
 let tphase = "am";
 let sfSeed = 0;
 const timers = {};
@@ -305,12 +305,9 @@ function filled(w, base) {
   return { v, usedExample };
 }
 function build(v) {
-  if (lang === "ja") {
-    return `手のひらにのる実物大（約6cm）の、2050年の近未来のモノ「${v.d}」。${v.c}に使う。` +
-      `モノだけを1つ。シンプルで太い形、底は平ら、細い部分なし、3Dプリント向け。`;
-  }
-  return `A real-size, palm-sized (about 6 cm) futuristic object from the year 2050: "${v.d}", used ${v.c}. ` +
-    `Object only, product shot, simple chunky shape, flat base, no thin parts, one solid piece, 3D printable.`;
+  // 試した中でいちばん形がよかった短い言い方（形だけを伝える）
+  if (lang === "ja") return `${v.d}。近未来のプロダクトデザイン。モノだけ。太くシンプルな形、底は平ら。`;
+  return `Futuristic ${v.d}, product design, object only, chunky simple shape, flat base.`;
 }
 
 // 発表のことば：①〜⑤から自動でまとめる（空欄は例のことばを使わず、言えるところだけ）
