@@ -86,6 +86,9 @@ textarea.prompt { width: 100%; min-height: 150px; resize: vertical; font: 500 17
 .cmp tr.changed td:last-child { font-weight: 900; }
 .chip { display: inline-block; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 2px 10px; background: var(--accent); color: var(--accent-ink); }
 .chip.same { background: var(--line); color: var(--fg); }
+.talk-text { margin: 0; font-size: 17px; font-weight: 700; line-height: 1.8; }
+.talkbox { background: var(--accent-soft); }
+.card .talk-text { font-size: 16px; }
 .hints details { background: var(--panel); border-radius: 12px; padding: 12px 16px; }
 .hints summary { font-weight: 700; cursor: pointer; }
 .hint-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 24px; margin-top: 6px; }
@@ -111,6 +114,7 @@ textarea.prompt { width: 100%; min-height: 150px; resize: vertical; font: 500 17
       <button type="button" data-view="D" aria-pressed="false">チームD</button>
       <button type="button" data-view="all" class="special" aria-pressed="false">全チーム（操作用）</button>
       <button type="button" data-view="cmp" class="special" aria-pressed="false">午前と午後をくらべる</button>
+      <button type="button" data-view="talk" class="special" aria-pressed="false">発表まとめ</button>
     </div>
   </header>
   <div class="bar">
@@ -157,6 +161,9 @@ textarea.prompt { width: 100%; min-height: 150px; resize: vertical; font: 500 17
       <div class="field"><label for="c"><span class="num">3</span>どんなときに使う？</label><input id="c" placeholder="例：買い物に行くとき"><span class="am-was" data-was="c" hidden></span></div>
       <div class="field"><label for="d"><span class="num">4</span>どんな道具・ロボット？</label><input id="d" placeholder="例：荷物を運ぶ小さなロボット"><span class="am-was" data-was="d" hidden></span>
         <span class="hint">ルール：手のひらにのる実物大（約6cm）の、道具かロボット。ここがそのまま立体になります。</span></div>
+      <div class="field"><label for="e"><span class="num">5</span>いちばん伝えたいこと</label><input id="e" placeholder="例：ひとりでも、買い物を楽しめる"><span class="am-was" data-was="e" hidden></span>
+        <span class="hint">発表で話す一言です。AIには入れません。</span></div>
+      <div class="field talkbox"><label>発表のことば（自動でまとまります）</label><p id="talkText" class="talk-text"></p></div>
     </form>
     <section class="out" aria-label="できあがったプロンプト">
       <div class="out-head">
@@ -178,6 +185,7 @@ textarea.prompt { width: 100%; min-height: 150px; resize: vertical; font: 500 17
           <li>モデルを生成 → 鉛筆アイコン（テキスト）に貼る</li>
           <li>テクスチャ：オフ ／ トポロジー：三角形 ／ ポリゴン数：100000</li>
           <li>人や文字が出たら「英語」に切り替えて貼り直す</li>
+          <li>生成：10:30–11:00に発表して1回 ／ 11:20–11:50にチームごと5回まで</li>
         </ul>
       </div>
     </section>
@@ -194,6 +202,21 @@ textarea.prompt { width: 100%; min-height: 150px; resize: vertical; font: 500 17
     <div class="cards" id="cards"></div>
   </section>
 
+  <section id="talkView" hidden>
+    <div class="row" style="margin-bottom:12px">
+      <span class="hint">各チームの①〜⑤から、発表のことばを自動でまとめています。</span>
+      <div class="row">
+        <div class="seg" role="group" aria-label="午前か午後か（まとめ）">
+          <button type="button" data-tphase="am" aria-pressed="true">午前</button>
+          <button type="button" data-tphase="pm" aria-pressed="false">午後</button>
+        </div>
+        <button type="button" class="copy" id="copyAll">全チーム分をコピー</button>
+        <span class="status" id="statusAll" role="status" style="color:var(--ok)"></span>
+      </div>
+    </div>
+    <div class="cards" id="talkCards"></div>
+  </section>
+
   <section id="cmpView" hidden>
     <p class="hint" style="margin:0 0 12px">午前に考えたことばと、東大やVRなどの先進技術を見たあとの午後のことばをくらべます。変わったところに色がつきます。午後の欄が空のところは「そのまま」です。</p>
     <div class="cards" id="cmpCards"></div>
@@ -204,9 +227,9 @@ textarea.prompt { width: 100%; min-height: 150px; resize: vertical; font: 500 17
 const TOPIC = "aoki2040-yoo2g7hxwq0qb8";
 const BASE = "https://ntfy.sh/" + TOPIC;
 const TEAMS = ["A", "B", "C", "D"];
-const KEYS = ["a", "b", "c", "d"];
-const LABELS = { a: "①どんな日本", b: "②だれのため", c: "③使うとき", d: "④道具・ロボット" };
-const EX = { a: "子どもが少ない", b: "ひとり暮らしのおばあちゃん", c: "買い物に行くとき", d: "荷物を運ぶ小さなロボット" };
+const KEYS = ["a", "b", "c", "d", "e"];
+const LABELS = { a: "①どんな日本", b: "②だれのため", c: "③使うとき", d: "④道具・ロボット", e: "⑤伝えたいこと" };
+const EX = { a: "子どもが少ない", b: "ひとり暮らしのおばあちゃん", c: "買い物に行くとき", d: "荷物を運ぶ小さなロボット", e: "ひとりでも、買い物を楽しめる" };
 const PHASE_NAME = { am: "午前", pm: "午後" };
 // data[team][phase] = {a,b,c,d,t,sent}
 const data = {};
@@ -215,6 +238,7 @@ let view = "A";
 let phase = "am";
 let lang = "ja";
 let sendTimer = null;
+let tphase = "am";
 
 function readLocal() {
   try {
@@ -231,9 +255,10 @@ function clock(t) { return new Date(t).toLocaleTimeString("ja-JP", { hour: "2-di
 const val = (w, k) => ((w && w[k]) || "").trim();
 
 // 午後の欄が空なら、午前のことばをそのまま使う
+const PROMPT_KEYS = ["a", "b", "c", "d"];
 function filled(w, base) {
   const v = {}; let usedExample = false;
-  for (const k of KEYS) { const t = val(w, k) || val(base, k); v[k] = t || EX[k]; if (!t) usedExample = true; }
+  for (const k of PROMPT_KEYS) { const t = val(w, k) || val(base, k); v[k] = t || EX[k]; if (!t) usedExample = true; }
   return { v, usedExample };
 }
 function build(v) {
@@ -245,6 +270,35 @@ function build(v) {
     `Object only, product shot, simple chunky shape, flat base, no thin parts, one solid piece, 3D printable.`;
 }
 
+// 発表のことば：①〜⑤から自動でまとめる（空欄は例のことばを使わず、言えるところだけ）
+function talkText(w, base) {
+  const g = k => val(w, k) || val(base, k);
+  const a = g("a"), b = g("b"), c = g("c"), d = g("d"), e = g("e");
+  const parts = [];
+  if (a) parts.push(`2050年の日本は、${a}日本です。`);
+  if (d) parts.push(`わたしたちが持ち帰ったのは「${d}」です。`);
+  if (b && c) parts.push(`${b}が、${c}に使います。`);
+  else if (b) parts.push(`${b}のための道具です。`);
+  else if (c) parts.push(`${c}に使います。`);
+  if (e) parts.push(`いちばん伝えたいのは、${e}ということです。`);
+  return parts.join("") || "まだ入力がありません。";
+}
+function renderTalk() {
+  document.querySelectorAll("[data-tphase]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.tphase === tphase)));
+  const box = document.getElementById("talkCards");
+  box.textContent = "";
+  for (const team of TEAMS) {
+    const card = document.createElement("article"); card.className = "card";
+    const h = document.createElement("h2"); h.textContent = `チーム${team}（${PHASE_NAME[tphase]}）`;
+    const p = document.createElement("p"); p.className = "talk-text";
+    p.textContent = talkText(data[team][tphase], tphase === "pm" ? data[team].am : null);
+    card.append(h, p);
+    box.appendChild(card);
+  }
+}
+function allTalkText() {
+  return TEAMS.map(t => `チーム${t}：` + talkText(data[t][tphase], tphase === "pm" ? data[t].am : null)).join("\n");
+}
 function renderTeam() {
   const w = data[view][phase];
   for (const k of KEYS) {
@@ -266,6 +320,7 @@ function renderTeam() {
   document.getElementById("prompt").value = build(v);
   document.getElementById("example").hidden = !usedExample;
   document.getElementById("outTitle").textContent = `チーム${view}のプロンプト（${PHASE_NAME[phase]}）`;
+  document.getElementById("talkText").textContent = talkText(w, phase === "pm" ? data[view].am : null);
 }
 function renderAll() {
   const box = document.getElementById("cards");
@@ -330,8 +385,9 @@ function render() {
   document.getElementById("hints").hidden = !team;
   document.getElementById("allView").hidden = view !== "all";
   document.getElementById("cmpView").hidden = view !== "cmp";
-  document.getElementById("phaseSeg").hidden = view === "cmp";
-  if (team) renderTeam(); else if (view === "all") renderAll(); else renderCmp();
+  document.getElementById("talkView").hidden = view !== "talk";
+  document.getElementById("phaseSeg").hidden = view === "cmp" || view === "talk";
+  if (team) renderTeam(); else if (view === "all") renderAll(); else if (view === "talk") renderTalk(); else renderCmp();
 }
 
 function copyText(ta, status) {
@@ -343,7 +399,7 @@ function copyText(ta, status) {
 // 送信：打ち終わって2.5秒たったら、または欄から離れたら送る（中継サービスの回数制限に配慮）
 function payload(team, ph) {
   const w = data[team][ph];
-  return JSON.stringify({ team, phase: ph, a: w.a || "", b: w.b || "", c: w.c || "", d: w.d || "", t: w.t });
+  return JSON.stringify({ team, phase: ph, a: w.a || "", b: w.b || "", c: w.c || "", d: w.d || "", e: w.e || "", t: w.t });
 }
 function scheduleSend(now) { clearTimeout(sendTimer); if (now) send(); else sendTimer = setTimeout(send, 2500); }
 async function send() {
@@ -370,7 +426,7 @@ function applyMessage(m) {
   const cur = data[p.team][ph] || {};
   const t = Number(p.t) || m.time * 1000;
   if (cur.t && cur.t >= t) return false;
-  data[p.team][ph] = { a: p.a || "", b: p.b || "", c: p.c || "", d: p.d || "", t };
+  data[p.team][ph] = { a: p.a || "", b: p.b || "", c: p.c || "", d: p.d || "", e: p.e || "", t };
   data[p.team][ph].sent = payload(p.team, ph);
   return true;
 }
@@ -409,6 +465,13 @@ document.querySelectorAll("[data-phase]").forEach(b => b.addEventListener("click
   render();
 }));
 document.querySelectorAll("[data-lang]").forEach(b => b.addEventListener("click", () => { lang = b.dataset.lang; render(); }));
+document.querySelectorAll("[data-tphase]").forEach(b => b.addEventListener("click", () => { tphase = b.dataset.tphase; renderTalk(); }));
+document.getElementById("copyAll").addEventListener("click", () => {
+  const st = document.getElementById("statusAll");
+  const text = allTalkText();
+  try { navigator.clipboard.writeText(text).then(() => { st.textContent = "コピーしました"; }, () => { st.textContent = "コピーできませんでした"; }); }
+  catch (e) { st.textContent = "コピーできませんでした"; }
+});
 const form = document.getElementById("form");
 form.addEventListener("input", () => {
   const w = data[view][phase];
@@ -418,6 +481,7 @@ form.addEventListener("input", () => {
   const { v, usedExample } = filled(w, phase === "pm" ? data[view].am : null);
   document.getElementById("prompt").value = build(v);
   document.getElementById("example").hidden = !usedExample;
+  document.getElementById("talkText").textContent = talkText(w, phase === "pm" ? data[view].am : null);
   scheduleSend(false);
 });
 form.addEventListener("focusout", () => scheduleSend(true));
@@ -425,7 +489,7 @@ form.addEventListener("submit", e => { e.preventDefault(); scheduleSend(true); }
 document.getElementById("copy").addEventListener("click", () => copyText(document.getElementById("prompt"), document.getElementById("status")));
 
 readLocal();
-if (![...TEAMS, "all", "cmp"].includes(view)) view = "A";
+if (![...TEAMS, "all", "cmp", "talk"].includes(view)) view = "A";
 if (!["am", "pm"].includes(phase)) phase = "am";
 render();
 pull().then(listen);
